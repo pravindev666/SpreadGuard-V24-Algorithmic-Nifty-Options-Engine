@@ -12,6 +12,10 @@ jobs:
   update-data:
     runs-on: ubuntu-latest
     
+    # Required for the BOT to push CSV data back to the repo
+    permissions:
+      contents: write
+    
     # Force the server environment into Indian Standard Time
     env:
       TZ: Asia/Kolkata
