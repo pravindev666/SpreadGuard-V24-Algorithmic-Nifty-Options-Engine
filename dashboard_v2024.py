@@ -192,7 +192,7 @@ if pulse:
         </table>""", unsafe_allow_html=True)
 
     st.divider()
-    st.markdown("### 📋 Execution Rulebook (Safe Tiers Only)")
+    st.markdown("### 📋 Execution Rulebook (1:1 Master Protocol)")
     st.markdown("**Target Expiry:** 21 Apr (Tuesday)")
     st.markdown("**Entry:** 11:30 AM | **Hold:** 1-7 Days depending on Tier")
     st.markdown("""**Risk Protocol:**
