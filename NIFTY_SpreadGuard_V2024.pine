@@ -1,0 +1,206 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Antigravity
+// @version=5
+indicator("NIFTY SpreadGuard V2024 — Mega-Sidebar Sniper", shorttitle="SG-V2024-MEGA", overlay=true, max_labels_count=500)
+
+// =============================================================================
+// [1] INPUTS & CONFIGURATION (V2024 Sniper Logic)
+// =============================================================================
+grp_core = "1 — SpreadGuard CORE V2024 (Sniper)"
+vixTicker     = input.symbol("NSE:INDIAVIX", "VIX Ticker Source", group=grp_core)
+velocityThres = input.float(4.5, "Velocity Storm Trigger (%)", minval=1.0, group=grp_core)
+vixCeilMult   = input.float(1.20, "Dynamic VIX Avg Mult", group=grp_core)
+strikeDist    = input.float(450.0, "Base OTM Distance", group=grp_core)
+capital_lots  = input.int(1, "Base Lots (1 Lot = 50 Qty)", group=grp_core)
+
+grp_ui = "2 — Mega-Sidebar Layout"
+showHUD       = input.bool(true, "Show 8-Column Dashboard", group=grp_ui)
+hudPos        = input.string(position.top_right, "HUD Position", options=[position.top_right, position.bottom_right], group=grp_ui)
+opacityHUD    = input.int(85, "Sidebar Opacity", minval=0, maxval=100, group=grp_ui)
+
+// =============================================================================
+// [2] SENSORS & V2024 SNIPER LOGIC
+// =============================================================================
+// Market Data
+vixClose = request.security(vixTicker, timeframe.period, close)
+vix20Avg = ta.sma(vixClose, 20)
+vixCeil  = math.min(vix20Avg * vixCeilMult, 22.0)
+
+// Velocity Sensor (V2024 High-Freq Drift)
+roc1     = (close - close[1]) / close[1] * 100
+velocity = math.abs(roc1) + math.abs(roc1[1]) + math.abs(roc1[2])
+
+// Institutional Indicators
+atr      = ta.atr(14)
+vixChg1d = (vixClose - vixClose[1]) / vixClose[1] * 100
+bbw      = (ta.stdev(close, 20) * 4) / ta.sma(close, 20) * 100
+bbwAvg   = ta.sma(bbw, 20)
+roc5     = (close - close[5]) / close[5] * 100
+
+// Danger Score (Sniper Tuning - Looser for Churn)
+score = 0
+score += (vixClose > 20 ? 1 : 0)
+score += (vixChg1d > 15 ? 1 : 0)
+score += (atr > 220 ? 1 : 0)
+score += (math.abs(roc5) > 2.5 ? 1 : 0)
+score += (bbw > bbwAvg * 1.3 ? 1 : 0)
+score += (velocity > velocityThres ? 1 : 0)
+
+// [3] THEME & COLOURS (V2024 Sniper Theme)
+WH   = #FFFFFF
+GRY  = #B2B5BE
+OK   = #00E676
+WARN = #FFD600
+FAIL = #FF5252
+BLUE = #2196F3
+HDR  = #1A237E // Sniper Midnight Blue
+CELL_BG = color.new(#0D1117, 100 - opacityHUD)
+
+// Regime Classification
+isStorm     = (velocity > velocityThres and score >= 2) or vixClose >= 26 or vixChg1d > 18.0
+isSafe      = not isStorm and score <= 2 and vixClose < vixCeil
+isSelective = not isSafe and not isStorm
+
+// Trend Bias (New)
+sma20 = ta.sma(close, 20)
+isBullish = close > sma20
+isBearish = close < sma20
+biasLabel = isBullish ? "BULL PUT" : isBearish ? "BEAR CALL" : "NEUTRAL"
+biasColor = isBullish ? OK : isBearish ? FAIL : WH
+
+// V2024 Multi-Layer Rules (Mon, Wed, Fri Sniper)
+dow = dayofweek
+isMon = (dow == dayofweek.monday)
+isWed = (dow == dayofweek.wednesday)
+isFri = (dow == dayofweek.friday)
+isEntryDay = isMon or isWed or isFri
+
+entrySignal = isEntryDay and isSafe 
+
+// =============================================================================
+// [3] PROBABILITY & SAFETY ENGINE (V16 Aesthetic)
+// =============================================================================
+f_norm_cdf(float _x) =>
+    float _t = 1.0 / (1.0 + 0.2316419 * math.abs(_x))
+    float _d = 0.3989423 * math.exp(-_x * _x / 2.0)
+    float _p = _d * _t * (0.3193815 + _t * (-0.3565638 + _t * (1.7814779 + _t * (-1.8212560 + _t * 1.3302744))))
+    _x >= 0 ? 1.0 - _p : _p
+
+f_safety(float _dist, int _hd) =>
+    float _atr = ta.atr(14)
+    float _dv   = close > 0 and _atr > 0 ? _atr / close : 0.01
+    float _z    = (_dist / close) / (_dv * math.sqrt(_hd))
+    (1.0 - (1.0 - f_norm_cdf(_z)) * 2.0) * 100.0
+
+// Safety Ladder
+safe_150 = f_safety(150.0, 5)
+safe_200 = f_safety(200.0, 5)
+safe_400 = f_safety(400.0, 7)
+safe_500 = f_safety(500.0, 7)
+safe_600 = f_safety(600.0, 7)
+safe_700 = f_safety(700.0, 7)
+safe_750 = f_safety(750.0, 7)
+
+if showHUD and barstate.islast
+    var table dash = table.new(hudPos, 8, 20, border_width=1, border_color=color.new(color.gray, 60), frame_color=color.new(color.white, 50), frame_width=1, bgcolor=CELL_BG)
+    
+    // [COL 0/1]: CORE STATUS
+    table.cell(dash, 0, 0, "SpreadGuard V2024", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 1, 0, "Multi-Layer Sniper", text_color=WH, bgcolor=HDR, text_size=size.small)
+    
+    table.cell(dash, 0, 1, "MODE",     text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 1, isStorm ? "LOCKDOWN" : isSelective ? "SELECTIVE" : "SNIPER-RDY", text_color=isStorm ? FAIL : isSelective ? WARN : OK, text_size=size.small)
+    table.cell(dash, 0, 2, "STATUS",   text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 2, isSafe ? "✅ SNIPE" : isStorm ? "🛑 STORM" : "⏸ WAIT", text_color=isSafe ? OK : isStorm ? FAIL : WARN, text_size=size.small)
+
+    table.cell(dash, 0, 3, "OTM Dist", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 3, str.tostring(strikeDist, "0") + " pts", text_color=WH, text_size=size.small)
+    
+    table.cell(dash, 0, 4, "BP Strike", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 4, str.tostring(math.round((close-strikeDist)/50)*50, "0"), text_color=OK, text_size=size.small)
+    table.cell(dash, 0, 5, "BC Strike", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 5, str.tostring(math.round((close+strikeDist)/50)*50, "0"), text_color=FAIL, text_size=size.small)
+
+    table.cell(dash, 0, 6, "BIAS",      text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 6, biasLabel,   text_color=biasColor, text_size=size.small)
+
+    table.cell(dash, 0, 7, "── MARKET ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 1, 7, "", bgcolor=HDR)
+    table.cell(dash, 0, 8, "India VIX", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 8, str.tostring(vixClose, "0.00"), text_color=WH, text_size=size.small)
+    table.cell(dash, 0, 9, "Sniper Ceil", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 9, str.tostring(vixCeil, "0.0"),  text_color=color.orange, text_size=size.small)
+    table.cell(dash, 0, 10, "ATR (14)",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 10, str.tostring(atr, "0"),       text_color=WH, text_size=size.small)
+    table.cell(dash, 0, 11, "Risk Score", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 11, str.tostring(score) + "/7",  text_color=score >= 4 ? FAIL : OK, text_size=size.small)
+    table.cell(dash, 0, 12, "V24 Velocity", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 12, str.tostring(velocity, "0.0") + "%", text_color=velocity > velocityThres ? FAIL : OK, text_size=size.small)
+
+    // [COL 2/3]: OTM LADDER (Institutional Safeties)
+    table.cell(dash, 2, 0, "── LADDER ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 3, 0, "Safety Check", text_color=WH, bgcolor=HDR, text_size=size.small)
+    
+    table.cell(dash, 2, 1, "150-BflyW", text_color=GRY, text_size=size.small)
+    table.cell(dash, 3, 1, safe_150 > 85 ? "AVAILABLE" : "blocked", text_color=safe_150 > 85 ? OK : GRY, text_size=size.small)
+    table.cell(dash, 2, 2, "200-Bfly",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 3, 2, str.tostring(safe_200, "0.0") + "%", text_color=safe_200 > 80 ? OK : FAIL, text_size=size.small)
+    table.cell(dash, 2, 3, "400-NCond", text_color=GRY, text_size=size.small)
+    table.cell(dash, 3, 3, str.tostring(safe_400, "0.0") + "%", text_color=safe_400 > 75 ? OK : FAIL, text_size=size.small)
+    table.cell(dash, 2, 4, "500-Aggr",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 3, 4, str.tostring(safe_500, "0.0") + "%", text_color=safe_500 >= 72 ? OK : FAIL, text_size=size.small)
+    table.cell(dash, 2, 5, "600-Norm",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 3, 5, str.tostring(safe_600, "0.0") + "%", text_color=safe_600 >= 70 ? OK : FAIL, text_size=size.small)
+
+    // [COL 4/5]: ALTERNATIVE STRIKE PLANNER
+    table.cell(dash, 4, 0, "── PLANNER ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 5, 0, "Rec. Strikes",  text_color=WH, bgcolor=HDR, text_size=size.small)
+    
+    table.cell(dash, 4, 1, "Butterfly P",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 1, str.tostring(math.round((close-200)/50)*50, "0"), text_color=WH, text_size=size.small)
+    table.cell(dash, 4, 2, "Butterfly C",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 2, str.tostring(math.round((close+200)/50)*50, "0"), text_color=WH, text_size=size.small)
+    
+    table.cell(dash, 4, 3, "Std Condor P", text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 3, str.tostring(math.round((close-500)/50)*50, "0"), text_color=OK, text_size=size.small)
+    table.cell(dash, 4, 4, "Std Condor C", text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 4, str.tostring(math.round((close+500)/50)*50, "0"), text_color=FAIL, text_size=size.small)
+    
+    table.cell(dash, 4, 5, "Wide Condor P", text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 5, str.tostring(math.round((close-700)/50)*50, "0"), text_color=OK, text_size=size.small)
+    table.cell(dash, 4, 6, "Wide Condor C", text_color=GRY, text_size=size.small)
+    table.cell(dash, 5, 6, str.tostring(math.round((close+700)/50)*50, "0"), text_color=FAIL, text_size=size.small)
+
+    // [COL 6/7]: SNIPER TARGETS & CHURN
+    table.cell(dash, 6, 0, "── TARGETS ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 7, 0, "Sniper Efficiency", text_color=WH, bgcolor=HDR, text_size=size.small)
+    
+    table.cell(dash, 6, 1, "Monday Churn",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 1, isMon and isSafe ? "✅ OPTIMAL" : "closed", text_color=isMon and isSafe ? OK : GRY, text_size=size.small)
+    table.cell(dash, 6, 2, "Mid-Wed Churn", text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 2, isWed and isSafe ? "✅ OPTIMAL" : "closed", text_color=isWed and isSafe ? OK : GRY, text_size=size.small)
+    table.cell(dash, 6, 3, "Friday Churn",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 3, isFri and isSafe ? "✅ OPTIMAL" : "closed", text_color=isFri and isSafe ? OK : GRY, text_size=size.small)
+    
+    table.cell(dash, 6, 4, "Mo Profit Rec", text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 4, "₹15k–25k",       text_color=OK, text_size=size.small)
+    table.cell(dash, 6, 5, "Layer Count",   text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 5, "Up to 3",        text_color=WH, text_size=size.small)
+
+// =============================================================================
+// [6] VISUALS (Background & Plots)
+// =============================================================================
+bgcolor(isStorm ? color.new(FAIL, 92) : isSelective ? color.new(WARN, 94) : isSafe ? color.new(OK, 94) : na)
+
+// Horizon Safety Floors
+plot(70, "Normal Floor", color.new(color.yellow, 60), 1, plot.style_linebr)
+plot(80, "High Safety", color.new(color.green, 60), 1, plot.style_linebr)
+plot(90, "Peak Safety", color.new(color.aqua, 60), 1, plot.style_linebr)
+
+// Sniper Labels
+plotshape(entrySignal and isSafe, "V2024 SNIPE", shape.labeldown, location.abovebar, OK, 0, "🎯 SNIPER LAYER", WH, false, size.small)
+plotshape(isStorm, "STORM WARNING", shape.xcross, location.bottom, FAIL, 0, "🛑 STORM LOCK", WH, false, size.normal)
+
+// Dynamic Planning Lines
+plot(isSafe ? math.round((close - strikeDist)/50)*50 : na, "Planning BP", color.new(OK, 20), 2, plot.style_stepline)
+plot(isSafe ? math.round((close + strikeDist)/50)*50 : na, "Planning BC", color.new(FAIL, 20), 2, plot.style_stepline)
