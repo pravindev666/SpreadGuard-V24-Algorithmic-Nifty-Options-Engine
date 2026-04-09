@@ -180,10 +180,15 @@ if pulse:
         """, unsafe_allow_html=True)
 
     st.divider()
-    st.markdown("### 📋 Execution Rulebook (Protocol)")
-    st.info("**Target Expiry:** 21 Apr (Tuesday) | **Entry:** 11:30 AM")
-    st.markdown("- **Max Layers:** Strict 3 concurrent. | **TP Mandate:** 70% decay or manual trail.")
-    st.warning("⚠️ Circuit Breaker: Always honor a 3-day pause if a spread gets breached.")
+    st.markdown("### 📋 Execution Rulebook (Safe Tiers Only)")
+    st.markdown("**Target Expiry:** 21 Apr (Tuesday)")
+    st.markdown("**Entry:** 11:30 AM | **Hold:** 1-7 Days depending on Tier")
+    st.markdown("""
+    **Risk Protocol:**
+    - **Max Layers:** Strict maximum 3 concurrent layers.
+    - **TP:** Exit manually on decay, or hold to expiry if perfectly calm.
+    - **Circuit Breaker:** Always honor a 3-day pause if a spread gets breached.
+    """)
 
 # ── AUTO REFRESH LOOP ──
 time.sleep(15)
