@@ -41,7 +41,7 @@ def calculate_dmi(df, period=14):
     return plus_di, minus_di
 
 def run_engine():
-    print("🧠 Starting Pure Deep Awareness Engine...")
+    print("🧠 Starting Full 12-Tier Strategic Engine...")
     
     # 1. LOAD DATA
     df_d = pd.read_csv("data/nifty_daily.csv")
@@ -49,7 +49,7 @@ def run_engine():
     df_d['date'] = pd.to_datetime(df_d['date'])
     v_d['date'] = pd.to_datetime(v_d['date'])
     
-    # 2. CORE SENSORS (DAILY)
+    # 2. CORE SENSORS
     current_price = df_d['close'].iloc[-1]
     current_vix = v_d['close'].iloc[-1]
     dow_idx = df_d['date'].iloc[-1].weekday()
@@ -65,22 +65,21 @@ def run_engine():
     roc1 = (df_d['close'].iloc[-1] - df_d['close'].iloc[-2]) / df_d['close'].iloc[-2] * 100
     roc5 = (df_d['close'].iloc[-1] - df_d['close'].iloc[-5]) / df_d['close'].iloc[-5] * 100
     
-    # Technical Pulse (Replicating Pine HUD)
+    # Technical Pulse
     plus_di, minus_di = calculate_dmi(df_d)
     st_uptrend = calculate_supertrend(df_d).iloc[-1]
     df_d['ema20'] = df_d['close'].ewm(span=20, adjust=False).mean()
     df_d['ema50'] = df_d['close'].ewm(span=50, adjust=False).mean()
-    
     ema_label = "BULL" if current_price > df_d['ema20'].iloc[-1] > df_d['ema50'].iloc[-1] else ("BEAR" if current_price < df_d['ema20'].iloc[-1] < df_d['ema50'].iloc[-1] else "NEUTRAL")
     dmi_label = "BULL" if plus_di.iloc[-1] > minus_di.iloc[-1] else "BEAR"
     st_label = "BULL" if st_uptrend else "BEAR"
     macd = df_d['close'].ewm(span=12, adjust=False).mean() - df_d['close'].ewm(span=26, adjust=False).mean()
     sig = macd.ewm(span=9, adjust=False).mean()
     macd_label = "BULL" if macd.iloc[-1] > sig.iloc[-1] else "BEAR"
-
-    score_4 = (1 if ema_label == "BULL" else 0) + (1 if dmi_label == "BULL" else 0) + (1 if st_label == "BULL" else 0) + (1 if macd_label == "BULL" else 0)
     
-    # 3. Decision Engine (96% Rules)
+    score_4 = (1 if ema_label == "BULL" else 0) + (1 if dmi_label == "BULL" else 0) + (1 if st_label == "BULL" else 0) + (1 if macd_label == "BULL" else 0)
+
+    # 3. Decision Engine
     vix_chg_1d = (v_d['close'].iloc[-1] - v_d['close'].iloc[-2]) / v_d['close'].iloc[-2] * 100
     danger_score = 0
     if current_vix > 18: danger_score += 1
@@ -91,34 +90,26 @@ def run_engine():
     vix_20d_avg = v_d['close'].rolling(20).mean().iloc[-1]
     vix_ceiling = min(vix_20d_avg * 1.15, 22.0)
     vix_2d_chg = (v_d['close'].iloc[-1] - v_d['close'].iloc[-3]) / v_d['close'].iloc[-3] * 100
-    
-    # VIX Divergence Logic
     vix_roc5 = (v_d['close'].iloc[-1] - v_d['close'].iloc[-5]) / v_d['close'].iloc[-5]
     vix_div = "DIVERGENT (🚨)" if (vix_roc5 > 0 and roc5 > 0) else "STABLE"
 
-    # MODE & STATUS Logic
-    mode_label = "NORMAL"
-    if danger_score >= 3 or current_vix > 22: mode_label = "LOCKDOWN"
-    elif danger_score >= 2: mode_label = "CAUTION"
-    
-    status_label = "STABLE"
-    if velocity > 5.4 or vix_chg_1d > 12: status_label = "⚡ STORM"
-    elif velocity > 4.0: status_label = "ACTIVE"
-    
-    # 4. TIER EVALUATION
+    # 4. TIER EVALUATION (Full 12 Tiers)
     tiers = []
-    bull_bias = (ema_label == "BULL")
-    bear_bias = (ema_label == "BEAR")
-    neut_bias = not bull_bias and not bear_bias
-    
-    tiers.append({"name": "VIX-Collapse", "active": bool(vix_2d_chg < -15 and danger_score < 3), "safe": True, "otm": 700, "type": "Bull Put"})
-    tiers.append({"name": "Near-VC", "active": bool(-15 <= vix_2d_chg < -10 and danger_score < 3), "safe": True, "otm": 700, "type": "Bull Put"})
-    tiers.append({"name": "Butterfly", "active": bool(danger_score == 0 and current_vix < 12 and current_atr < 150), "safe": True, "otm": 200, "type": "Iron Fly"})
-    tiers.append({"name": "Thursday-EXP", "active": bool(dow_idx == 3 and danger_score <= 1), "safe": True, "otm": 600, "type": "Bull Put"})
-    tiers.append({"name": "Monday-RW", "active": bool(dow_idx == 0 and danger_score <= 1), "safe": True, "otm": 680, "type": "Bull Put"})
-    tiers.append({"name": "NarrowCondor", "active": bool(neut_bias and danger_score <= 1), "safe": False, "otm": 400, "type": "Iron Condor"})
-    tiers.append({"name": "Bear-Call", "active": bool(bear_bias and danger_score <= 2), "safe": False, "otm": 600, "type": "Bear Call"})
-    tiers.append({"name": "HighATR-Cautious", "active": bool(current_atr > 220 and danger_score <= 2), "safe": False, "otm": 800, "type": "Bull Put"})
+    # --- HIGH CONVICTION [SAFE] ---
+    tiers.append({"name": "VIX-Collapse", "active": bool(vix_2d_chg < -15 and danger_score < 3), "safe": True, "otm": 700, "hedge": 200, "type": "Bull Put"})
+    tiers.append({"name": "Near-VC", "active": bool(-15 <= vix_2d_chg < -10 and danger_score < 3), "safe": True, "otm": 700, "hedge": 200, "type": "Bull Put"})
+    tiers.append({"name": "Butterfly", "active": bool(danger_score == 0 and current_vix < 12), "safe": True, "otm": 200, "hedge": 200, "type": "Iron Fly"})
+    tiers.append({"name": "Thursday-EXP", "active": bool(dow_idx == 3 and danger_score <= 1), "safe": True, "otm": 600, "hedge": 200, "type": "Bull Put"})
+    tiers.append({"name": "Friday-SNP", "active": bool(dow_idx == 4 and danger_score <= 1), "safe": True, "otm": 500, "hedge": 200, "type": "Bull Put"})
+    tiers.append({"name": "Monday-RW", "active": bool(dow_idx == 0 and danger_score <= 1), "safe": True, "otm": 680, "hedge": 200, "type": "Bull Put"})
+    tiers.append({"name": "Wednesday-MW", "active": bool(dow_idx == 2 and danger_score <= 1), "safe": True, "otm": 600, "hedge": 200, "type": "Bull Put"})
+
+    # --- AGGRESSIVE ---
+    tiers.append({"name": "NarrowCondor", "active": bool(danger_score <= 1 and current_atr <= 140), "safe": False, "otm": 400, "hedge": 500, "type": "Iron Condor"})
+    tiers.append({"name": "CONDOR", "active": bool(danger_score <= 2 and 12 <= current_vix <= 20), "safe": False, "otm": 500, "hedge": 500, "type": "Iron Condor"})
+    tiers.append({"name": "WideCondor", "active": bool(danger_score <= 2 and 160 <= current_atr <= 220), "safe": False, "otm": 600, "hedge": 600, "type": "Iron Condor"})
+    tiers.append({"name": "Bear-Call", "active": bool(ema_label == "BEAR" and danger_score <= 2), "safe": False, "otm": 600, "hedge": 200, "type": "Bear Call"})
+    tiers.append({"name": "HighATR-Cautious", "active": bool(current_atr > 220 and danger_score <= 2), "safe": False, "otm": 800, "hedge": 200, "type": "Bull Put"})
 
     # 5. ANCHOR & MTF
     anchor_label = "NEUTRAL"
@@ -137,34 +128,14 @@ def run_engine():
 
     pulse = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "market": {
-            "spot": round(float(current_price), 2),
-            "vix": round(float(current_vix), 2),
-            "atr": round(float(current_atr), 1),
-            "velocity": round(float(velocity), 2),
-            "vix_div": vix_div
-        },
-        "intelligence": {
-            "mode": mode_label,
-            "status": status_label,
-            "danger_score": int(danger_score),
-            "vix_threshold": round(float(vix_ceiling), 2),
-            "consensus": f"+{score_4}/4 Match",
-            "anchor": anchor_label,
-            "mtf": mtf_label,
-            "sensors": {
-                "ema": ema_label,
-                "dmi": dmi_label,
-                "st": st_label,
-                "macd": macd_label
-            }
-        },
+        "market": {"spot": round(float(current_price), 2), "vix": round(float(current_vix), 2), "atr": round(float(current_atr), 1), "velocity": round(float(velocity), 2), "vix_div": vix_div},
+        "intelligence": {"mode": "LOCKDOWN" if (danger_score >= 3 or current_vix > 22) else ("CAUTION" if danger_score >= 2 else "NORMAL"), "status": "⚡ STORM" if (velocity > 5.4) else "STABLE", "danger_score": int(danger_score), "vix_threshold": round(float(vix_ceiling), 2), "consensus": f"+{score_4}/4 Match", "anchor": anchor_label, "mtf": mtf_label, "sensors": {"ema": ema_label, "dmi": dmi_label, "st": st_label, "macd": macd_label}, "vwap_veto": bool(current_price < df_d['ema20'].iloc[-1])},
         "tiers": tiers
     }
     
     with open("data/intelligence_pulse.json", "w") as f:
         json.dump(pulse, f, indent=4)
-    print("✅ Deep Awareness Pulse Generated!")
+    print("✅ Full strategic 12-tier pulse Generated!")
 
 if __name__ == "__main__":
     run_engine()

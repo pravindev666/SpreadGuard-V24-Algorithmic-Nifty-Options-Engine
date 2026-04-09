@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-04-09 17:54:13",
+    "timestamp": "2026-04-09 17:59:21",
     "market": {
         "spot": 23770.65,
         "vix": 20.27,
@@ -20,7 +20,8 @@
             "dmi": "BEAR",
             "st": "BEAR",
             "macd": "BULL"
-        }
+        },
+        "vwap_veto": false
     },
     "tiers": [
         {
@@ -28,6 +29,7 @@
             "active": false,
             "safe": true,
             "otm": 700,
+            "hedge": 200,
             "type": "Bull Put"
         },
         {
@@ -35,6 +37,7 @@
             "active": false,
             "safe": true,
             "otm": 700,
+            "hedge": 200,
             "type": "Bull Put"
         },
         {
@@ -42,6 +45,7 @@
             "active": false,
             "safe": true,
             "otm": 200,
+            "hedge": 200,
             "type": "Iron Fly"
         },
         {
@@ -49,6 +53,15 @@
             "active": false,
             "safe": true,
             "otm": 600,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Friday-SNP",
+            "active": false,
+            "safe": true,
+            "otm": 500,
+            "hedge": 200,
             "type": "Bull Put"
         },
         {
@@ -56,6 +69,15 @@
             "active": false,
             "safe": true,
             "otm": 680,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Wednesday-MW",
+            "active": false,
+            "safe": true,
+            "otm": 600,
+            "hedge": 200,
             "type": "Bull Put"
         },
         {
@@ -63,6 +85,23 @@
             "active": false,
             "safe": false,
             "otm": 400,
+            "hedge": 500,
+            "type": "Iron Condor"
+        },
+        {
+            "name": "CONDOR",
+            "active": false,
+            "safe": false,
+            "otm": 500,
+            "hedge": 500,
+            "type": "Iron Condor"
+        },
+        {
+            "name": "WideCondor",
+            "active": false,
+            "safe": false,
+            "otm": 600,
+            "hedge": 600,
             "type": "Iron Condor"
         },
         {
@@ -70,6 +109,7 @@
             "active": false,
             "safe": false,
             "otm": 600,
+            "hedge": 200,
             "type": "Bear Call"
         },
         {
@@ -77,6 +117,7 @@
             "active": false,
             "safe": false,
             "otm": 800,
+            "hedge": 200,
             "type": "Bull Put"
         }
     ]
