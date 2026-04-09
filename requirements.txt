@@ -21,3 +21,4 @@ typing-extensions
 tzdata
 urllib3
 websockets
+scipy
