@@ -75,23 +75,28 @@ with st.sidebar:
     
     pulse = fetch_pulse(mode)
     if pulse:
-        i = pulse["intelligence"]
-        m = pulse["market"]
+        m = pulse.get("market", {})
+        i = pulse.get("intelligence", {})
         
-        st.caption(f"Heartbeat: {pulse['timestamp']}")
+        st.caption(f"Heartbeat: {pulse.get('timestamp', 'Unknown')}")
         
         # Primary Danger Matrix (96% Backtest Rules)
         st.markdown("### Decision Engine (Backtest)")
-        st.metric("Danger Score", f"{i['danger_score']}/4", delta="VETO" if i["vwap_veto"] else "CLEAR", delta_color="inverse" if i["vwap_veto"] else "normal")
-        st.metric("VIX Ceiling", f"{i['vix_threshold']:.1f}", delta=f"{m['vix']:.1f} (ACT)", delta_color="inverse" if m['vix'] > i['vix_threshold'] else "normal")
+        d_score = i.get("danger_score", 0)
+        v_veto = i.get("vwap_veto", False)
+        v_ceil = i.get("vix_threshold", 20.0)
+        cur_vix = m.get("vix", 0)
+
+        st.metric("Danger Score", f"{d_score}/4", delta="VETO" if v_veto else "CLEAR", delta_color="inverse" if v_veto else "normal")
+        st.metric("VIX Ceiling", f"{v_ceil:.1f}", delta=f"{cur_vix:.1f} (ACT)", delta_color="inverse" if cur_vix > v_ceil else "normal")
         
         st.divider()
         
         # Secondary Awareness (HUD Indicators)
         st.markdown("### Strategy Indicators")
-        st.metric("Consensus", f"{i['consensus']}/4 Match")
-        st.caption(f"MTF Anchor: {i['anchor']}")
-        st.caption(f"Bias: {i['bias']}")
+        st.metric("Consensus", f"{i.get('consensus', 0)}/4 Match")
+        st.caption(f"MTF Anchor: {i.get('anchor', 'N/A')}")
+        st.caption(f"Bias: {i.get('bias', 'N/A')}")
     else:
         st.error("Backend Disconnected.")
 
