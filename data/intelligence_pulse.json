@@ -1,0 +1,25 @@
+{
+    "timestamp": "2026-04-09 16:35:49",
+    "market": {
+        "spot": 23770.65,
+        "vix": 20.27,
+        "atr": 517.5,
+        "velocity": 1.0,
+        "roc1": -1.0,
+        "roc5": 4.72
+    },
+    "intelligence": {
+        "bias": "BEAR BIAS",
+        "score": -2,
+        "shock": false,
+        "anchor": "BULL",
+        "vwap_veto": true,
+        "vix_div": false
+    },
+    "strikes": {
+        "bp_500": 23250,
+        "bc_500": 24250,
+        "bp_700": 23050,
+        "bc_700": 24450
+    }
+}
