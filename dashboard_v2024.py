@@ -51,7 +51,9 @@ RAW_URL = "https://raw.githubusercontent.com/pravindev666/SpreadGuard-V24-Algori
 def fetch_pulse(mode):
     if mode == "📡 LIVE CLOUD (GITHUB)":
         try:
-            response = requests.get(RAW_URL)
+            # Force GitHub to bypass CDN cache
+            cache_buster = f"{RAW_URL}?t={int(time.time())}"
+            response = requests.get(cache_buster)
             if response.status_code == 200: return response.json()
         except: pass
         return None
