@@ -45,7 +45,7 @@ st.markdown("""
 # 2. STATE LOADER
 # ─────────────────────────────────────────────────────────────────────────────
 
-RAW_URL = "https://raw.githubusercontent.com/pravindev666/SpreadGuard-V24-Algorithmic-Nifty-Options-Engine/main/data/intelligence_pulse.json"
+RAW_URL = "https://raw.githubusercontent.com/pravindev666/SpreadGuard-V24-Algorithmic-Nifty-Options-Engine/main/data/intelligence_pulse_V2.json"
 
 @st.cache_data(ttl=15)
 def fetch_pulse(mode):

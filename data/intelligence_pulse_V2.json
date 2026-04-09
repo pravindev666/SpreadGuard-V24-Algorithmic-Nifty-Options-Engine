@@ -1,0 +1,124 @@
+{
+    "timestamp": "2026-04-09 18:12:32",
+    "market": {
+        "spot": 23770.65,
+        "vix": 20.27,
+        "atr": 517.5,
+        "velocity": 5.55,
+        "vix_div": "STABLE"
+    },
+    "intelligence": {
+        "mode": "LOCKDOWN",
+        "status": "\u26a1 STORM",
+        "danger_score": 3,
+        "vix_threshold": 22.0,
+        "consensus": "+1/4 Match",
+        "anchor": "NEUTRAL",
+        "mtf": "CONFLICT",
+        "sensors": {
+            "ema": "NEUTRAL",
+            "dmi": "BEAR",
+            "st": "BEAR",
+            "macd": "BULL"
+        },
+        "vwap_veto": false
+    },
+    "tiers": [
+        {
+            "name": "VIX-Collapse",
+            "active": false,
+            "safe": true,
+            "otm": 700,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Near-VC",
+            "active": false,
+            "safe": true,
+            "otm": 700,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Butterfly",
+            "active": false,
+            "safe": true,
+            "otm": 200,
+            "hedge": 200,
+            "type": "Iron Fly"
+        },
+        {
+            "name": "Thursday-EXP",
+            "active": false,
+            "safe": true,
+            "otm": 600,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Friday-SNP",
+            "active": false,
+            "safe": true,
+            "otm": 500,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Monday-RW",
+            "active": false,
+            "safe": true,
+            "otm": 680,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "Wednesday-MW",
+            "active": false,
+            "safe": true,
+            "otm": 600,
+            "hedge": 200,
+            "type": "Bull Put"
+        },
+        {
+            "name": "NarrowCondor",
+            "active": false,
+            "safe": false,
+            "otm": 400,
+            "hedge": 500,
+            "type": "Iron Condor"
+        },
+        {
+            "name": "CONDOR",
+            "active": false,
+            "safe": false,
+            "otm": 500,
+            "hedge": 500,
+            "type": "Iron Condor"
+        },
+        {
+            "name": "WideCondor",
+            "active": false,
+            "safe": false,
+            "otm": 600,
+            "hedge": 600,
+            "type": "Iron Condor"
+        },
+        {
+            "name": "Bear-Call",
+            "active": false,
+            "safe": false,
+            "otm": 600,
+            "hedge": 200,
+            "type": "Bear Call"
+        },
+        {
+            "name": "HighATR-Cautious",
+            "active": false,
+            "safe": false,
+            "otm": 800,
+            "hedge": 200,
+            "type": "Bull Put"
+        }
+    ]
+}

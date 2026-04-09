@@ -41,7 +41,7 @@ def calculate_dmi(df, period=14):
     return plus_di, minus_di
 
 def run_engine():
-    print("🧠 Starting Full 12-Tier Strategic Engine...")
+    print("🧠 Starting Pure Replica Decision Engine V2...")
     
     # 1. LOAD DATA
     df_d = pd.read_csv("data/nifty_daily.csv")
@@ -95,7 +95,6 @@ def run_engine():
 
     # 4. TIER EVALUATION (Full 12 Tiers)
     tiers = []
-    # --- HIGH CONVICTION [SAFE] ---
     tiers.append({"name": "VIX-Collapse", "active": bool(vix_2d_chg < -15 and danger_score < 3), "safe": True, "otm": 700, "hedge": 200, "type": "Bull Put"})
     tiers.append({"name": "Near-VC", "active": bool(-15 <= vix_2d_chg < -10 and danger_score < 3), "safe": True, "otm": 700, "hedge": 200, "type": "Bull Put"})
     tiers.append({"name": "Butterfly", "active": bool(danger_score == 0 and current_vix < 12), "safe": True, "otm": 200, "hedge": 200, "type": "Iron Fly"})
@@ -103,17 +102,16 @@ def run_engine():
     tiers.append({"name": "Friday-SNP", "active": bool(dow_idx == 4 and danger_score <= 1), "safe": True, "otm": 500, "hedge": 200, "type": "Bull Put"})
     tiers.append({"name": "Monday-RW", "active": bool(dow_idx == 0 and danger_score <= 1), "safe": True, "otm": 680, "hedge": 200, "type": "Bull Put"})
     tiers.append({"name": "Wednesday-MW", "active": bool(dow_idx == 2 and danger_score <= 1), "safe": True, "otm": 600, "hedge": 200, "type": "Bull Put"})
-
-    # --- AGGRESSIVE ---
     tiers.append({"name": "NarrowCondor", "active": bool(danger_score <= 1 and current_atr <= 140), "safe": False, "otm": 400, "hedge": 500, "type": "Iron Condor"})
     tiers.append({"name": "CONDOR", "active": bool(danger_score <= 2 and 12 <= current_vix <= 20), "safe": False, "otm": 500, "hedge": 500, "type": "Iron Condor"})
     tiers.append({"name": "WideCondor", "active": bool(danger_score <= 2 and 160 <= current_atr <= 220), "safe": False, "otm": 600, "hedge": 600, "type": "Iron Condor"})
     tiers.append({"name": "Bear-Call", "active": bool(ema_label == "BEAR" and danger_score <= 2), "safe": False, "otm": 600, "hedge": 200, "type": "Bear Call"})
     tiers.append({"name": "HighATR-Cautious", "active": bool(current_atr > 220 and danger_score <= 2), "safe": False, "otm": 800, "hedge": 200, "type": "Bull Put"})
 
-    # 5. ANCHOR & MTF
+    # 5. ANCHOR & MTF (Optimized 15m lookup)
     anchor_label = "NEUTRAL"
     mtf_label = "CONFLICT"
+    vwap_veto = bool(current_price < df_d['ema20'].iloc[-1])
     try:
         df_15m = pd.read_csv("data/nifty_15m_2001_to_now.csv")
         df_15m['datetime'] = pd.to_datetime(df_15m['date'])
@@ -129,13 +127,14 @@ def run_engine():
     pulse = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "market": {"spot": round(float(current_price), 2), "vix": round(float(current_vix), 2), "atr": round(float(current_atr), 1), "velocity": round(float(velocity), 2), "vix_div": vix_div},
-        "intelligence": {"mode": "LOCKDOWN" if (danger_score >= 3 or current_vix > 22) else ("CAUTION" if danger_score >= 2 else "NORMAL"), "status": "⚡ STORM" if (velocity > 5.4) else "STABLE", "danger_score": int(danger_score), "vix_threshold": round(float(vix_ceiling), 2), "consensus": f"+{score_4}/4 Match", "anchor": anchor_label, "mtf": mtf_label, "sensors": {"ema": ema_label, "dmi": dmi_label, "st": st_label, "macd": macd_label}, "vwap_veto": bool(current_price < df_d['ema20'].iloc[-1])},
+        "intelligence": {"mode": "LOCKDOWN" if (danger_score >= 3 or current_vix > 22) else ("CAUTION" if danger_score >= 2 else "NORMAL"), "status": "⚡ STORM" if (velocity > 5.4) else "STABLE", "danger_score": int(danger_score), "vix_threshold": round(float(vix_ceiling), 2), "consensus": f"+{score_4}/4 Match", "anchor": anchor_label, "mtf": mtf_label, "sensors": {"ema": ema_label, "dmi": dmi_label, "st": st_label, "macd": macd_label}, "vwap_veto": vwap_veto},
         "tiers": tiers
     }
     
-    with open("data/intelligence_pulse.json", "w") as f:
+    # NUCLEAR CACHE BYPASS: Write to V2
+    with open("data/intelligence_pulse_V2.json", "w") as f:
         json.dump(pulse, f, indent=4)
-    print("✅ Full strategic 12-tier pulse Generated!")
+    print("✅ Nuclear V2 Pulse Generated [12 Tiers]!")
 
 if __name__ == "__main__":
     run_engine()
