@@ -119,7 +119,7 @@ if pulse:
     st.divider()
     
     col_safe, col_agg = st.columns(2)
-    tiers = pulse["tiers"]
+    tiers = pulse.get("tiers", [])
     
     with col_safe:
         st.subheader("🟢 HIGH CONVICTION [96% W/R]")
