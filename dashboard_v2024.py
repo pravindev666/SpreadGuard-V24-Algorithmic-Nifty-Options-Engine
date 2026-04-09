@@ -90,7 +90,7 @@ with st.sidebar:
         d_score = i["score"]
         
         st.metric("Bias", i["bias"], delta="Stacked" if i["anchor"] == "BULL" else "Conflict")
-        st.metric("Danger Score", f"{d_score}/4", delta="VETO" if v_veto else "SAFE", delta_color="inverse" if v_veto else "normal")
+        st.metric("Consensus", f"{d_score}/4 Match", delta="VETO" if v_veto else "SAFE", delta_color="inverse" if v_veto else "normal")
         
         st.divider()
         st.markdown("### Backend Attributes")

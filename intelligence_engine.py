@@ -64,18 +64,23 @@ def run_engine():
     macd = df_d['close'].ewm(span=12, adjust=False).mean() - df_d['close'].ewm(span=26, adjust=False).mean()
     signal = macd.ewm(span=9, adjust=False).mean()
     
-    # Consensus
-    score = 0
-    score += (1 if (df_d['ema20'].iloc[-1] > df_d['ema50'].iloc[-1]) and (current_price > df_d['ema20'].iloc[-1]) else -1)
-    score += (1 if plus_di.iloc[-1] > minus_di.iloc[-1] else -1)
-    score += (1 if df_d['st_uptrend'].iloc[-1] else -1)
-    score += (1 if macd.iloc[-1] > signal.iloc[-1] else -1)
+    # 0-4 Consensus (Matches Pine Script HUD Visibility)
+    score_4 = 0
+    # 1. EMA
+    is_ema_bull = (df_d['ema20'].iloc[-1] > df_d['ema50'].iloc[-1]) and (current_price > df_d['ema20'].iloc[-1])
+    score_4 += (1 if is_ema_bull else 0)
+    # 2. DMI
+    score_4 += (1 if plus_di.iloc[-1] > minus_di.iloc[-1] else 0)
+    # 3. SuperTrend
+    score_4 += (1 if df_d['st_uptrend'].iloc[-1] else 0)
+    # 4. MACD
+    score_4 += (1 if macd.iloc[-1] > signal.iloc[-1] else 0)
     
-    bias = "NEUTRAL"
-    if score >= 3: bias = "STRONG BULL"
-    elif score == 2: bias = "BULL BIAS"
-    elif score <= -3: bias = "STRONG BEAR"
-    elif score == -2: bias = "BEAR BIAS"
+    bias = "CONSOLIDATING"
+    if score_4 >= 3: bias = "BULLISH BIAS"
+    elif score_4 == 0: bias = "BEARISH BIAS"
+    elif score_4 == 1: bias = "NEUTRAL (Bearish)"
+    elif score_4 == 2: bias = "NEUTRAL (Bullish)"
 
     # Momentum Shock
     roc1 = (df_d['close'].iloc[-1] - df_d['close'].iloc[-2]) / df_d['close'].iloc[-2] * 100
@@ -93,12 +98,16 @@ def run_engine():
         
         # Latest Snap
         m15_latest = df_15m.iloc[-1]
-        day_open = df_15m[df_15m.index.date == m15_latest.name.date()]['open'].iloc[0]
-        vwap_veto = m15_latest['close'] < day_open
+        
+        # VWAP Logic matches Pine
+        day_df = df_15m[df_15m.index.date == m15_latest.name.date()]
+        if not day_df.empty:
+            vwap_val = (day_df['close'] * day_df['volume']).cumsum() / day_df['volume'].cumsum()
+            vwap_veto = m15_latest['close'] < vwap_val.iloc[-1]
         
         # MTF
         ema20_15m = df_15m['close'].ewm(span=20, adjust=False).mean().iloc[-1]
-        ema20_1h = df_15m['close'].resample('1h').last().ewm(span=20, adjust=False).mean().iloc[-1]
+        ema20_1h = df_15m['close'].resample('1h').last().ffill().ewm(span=20, adjust=False).mean().iloc[-1]
         
         if (ema20_15m > ema20_1h) and (ema20_1h > df_d['ema20'].iloc[-1]): anchor_signal = "BULL"
         elif (ema20_15m < ema20_1h) and (ema20_1h < df_d['ema20'].iloc[-1]): anchor_signal = "BEAR"
@@ -129,7 +138,7 @@ def run_engine():
         },
         "intelligence": {
             "bias": bias,
-            "score": int(score),
+            "score": int(score_4),
             "shock": bool(shock),
             "anchor": anchor_signal,
             "vwap_veto": bool(vwap_veto),
