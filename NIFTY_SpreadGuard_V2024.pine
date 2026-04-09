@@ -61,12 +61,50 @@ isStorm     = (velocity > velocityThres and score >= 2) or vixClose >= 26 or vix
 isSafe      = not isStorm and score <= 2 and vixClose < vixCeil
 isSelective = not isSafe and not isStorm
 
-// Trend Bias (New)
-sma20 = ta.sma(close, 20)
-isBullish = close > sma20
-isBearish = close < sma20
-biasLabel = isBullish ? "BULL PUT" : isBearish ? "BEAR CALL" : "NEUTRAL"
-biasColor = isBullish ? OK : isBearish ? FAIL : WH
+// Trend Bias (V2024 Institutional Trend Cluster)
+ema20 = ta.ema(close, 20)
+ema50 = ta.ema(close, 50)
+
+// 1. DMI (Directional Movement Index)
+[diplus, diminus, adx] = ta.dmi(14, 14)
+
+// 2. SuperTrend (Volatility Trend)
+[supertrend, direction] = ta.supertrend(3, 10)
+
+// 3. MACD (Momentum)
+[macdLine, signalLine, _] = ta.macd(close, 12, 26, 9)
+
+// ── [4] ANCHOR INTELLIGENCE (MTF & VWAP) ──
+// Multi-Timeframe EMA 20 Alignment
+ema15m = request.security(syminfo.tickerid, "15", ta.ema(close, 20))
+ema1h  = request.security(syminfo.tickerid, "60", ta.ema(close, 20))
+ema1d  = ta.ema(close, 20)
+
+isStackedBull = (ema15m > ema1h) and (ema1h > ema1d)
+isStackedBear = (ema15m < ema1h) and (ema1h < ema1d)
+
+// VWAP Sensor
+curVwap = ta.vwap
+isAboveVwap = close > curVwap
+
+// ── [5] CLUSTER SCORING LOGIC ──
+t_score = 0
+// EMA Point: Only Bullish if Cross is Up AND Price is above EMA 20
+t_score += (ema20 > ema50 and close > ema20 ? 1 : (ema20 < ema50 and close < ema20 ? -1 : 0))
+t_score += (diplus > diminus ? 1 : -1)
+t_score += (direction < 0 ? 1 : -1) // SuperTrend BULL
+t_score += (macdLine > signalLine ? 1 : -1)
+
+// Momentum Shock Veto: Immediately nukes score if a deep red breakdown occurs
+isShock = (close < open and roc1 < -1.0)
+t_score := isShock ? t_score - 2 : t_score
+
+// Hardened Bias Label (Strict V2024 Thresholds)
+isBullish = t_score >= 2
+isBearish = t_score <= -2
+biasLabel = t_score >= 3 ? "STRONG BULL" : t_score == 2 ? "BULL BIAS" : t_score <= -3 ? "STRONG BEAR" : t_score == -2 ? "BEAR BIAS" : "NEUTRAL"
+biasColor = t_score >= 2 ? OK : t_score <= -2 ? FAIL : WH
+clusterMsg = str.tostring(t_score, "+0;-0") + "/4 Match"
 
 // V2024 Multi-Layer Rules (Mon, Wed, Fri Sniper)
 dow = dayofweek
@@ -123,19 +161,26 @@ if showHUD and barstate.islast
 
     table.cell(dash, 0, 6, "BIAS",      text_color=GRY, text_size=size.small)
     table.cell(dash, 1, 6, biasLabel,   text_color=biasColor, text_size=size.small)
+    
+    table.cell(dash, 0, 7, "EMA 20/50", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 7, ema20 > ema50 and close > ema20 ? "BULL" : (ema20 < ema50 and close < ema20 ? "BEAR" : "NEUTRAL"), text_color=ema20 > ema50 and close > ema20 ? OK : (ema20 < ema50 and close < ema20 ? FAIL : WH), text_size=size.small)
+    table.cell(dash, 0, 8, "DMI (14)",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 8, diplus > diminus ? "BULL" : "BEAR", text_color=diplus > diminus ? OK : FAIL, text_size=size.small)
+    table.cell(dash, 0, 9, "SuperTrend", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 9, direction < 0 ? "BULL" : "BEAR", text_color=direction < 0 ? OK : FAIL, text_size=size.small)
+    table.cell(dash, 0, 10, "MACD Sig",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 10, macdLine > signalLine ? "BULL" : "BEAR", text_color=macdLine > signalLine ? OK : FAIL, text_size=size.small)
+    
+    table.cell(dash, 0, 11, "CONSENSUS", text_color=HDR, bgcolor=WH, text_size=size.small)
+    table.cell(dash, 1, 11, clusterMsg,   text_color=HDR, bgcolor=WH, text_size=size.small)
 
-    table.cell(dash, 0, 7, "── MARKET ──", text_color=WH, bgcolor=HDR, text_size=size.small)
-    table.cell(dash, 1, 7, "", bgcolor=HDR)
-    table.cell(dash, 0, 8, "India VIX", text_color=GRY, text_size=size.small)
-    table.cell(dash, 1, 8, str.tostring(vixClose, "0.00"), text_color=WH, text_size=size.small)
-    table.cell(dash, 0, 9, "Sniper Ceil", text_color=GRY, text_size=size.small)
-    table.cell(dash, 1, 9, str.tostring(vixCeil, "0.0"),  text_color=color.orange, text_size=size.small)
-    table.cell(dash, 0, 10, "ATR (14)",  text_color=GRY, text_size=size.small)
-    table.cell(dash, 1, 10, str.tostring(atr, "0"),       text_color=WH, text_size=size.small)
-    table.cell(dash, 0, 11, "Risk Score", text_color=GRY, text_size=size.small)
-    table.cell(dash, 1, 11, str.tostring(score) + "/7",  text_color=score >= 4 ? FAIL : OK, text_size=size.small)
-    table.cell(dash, 0, 12, "V24 Velocity", text_color=GRY, text_size=size.small)
-    table.cell(dash, 1, 12, str.tostring(velocity, "0.0") + "%", text_color=velocity > velocityThres ? FAIL : OK, text_size=size.small)
+    table.cell(dash, 0, 12, "── ANCHOR ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 1, 12, "80% Strategy", text_color=WH, bgcolor=HDR, text_size=size.small)
+    
+    table.cell(dash, 0, 13, "MTF-Trend", text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 13, isStackedBull ? "STACKED-UP" : isStackedBear ? "STACKED-DN" : "MIXED/FLAT", text_color=isStackedBull ? OK : isStackedBear ? FAIL : color.yellow, text_size=size.small)
+    table.cell(dash, 0, 14, "VWAP Pos",  text_color=GRY, text_size=size.small)
+    table.cell(dash, 1, 14, isAboveVwap ? "ABOVE (Bull)" : "BELOW (Bear)", text_color=isAboveVwap ? OK : FAIL, text_size=size.small)
 
     // [COL 2/3]: OTM LADDER (Institutional Safeties)
     table.cell(dash, 2, 0, "── LADDER ──", text_color=WH, bgcolor=HDR, text_size=size.small)
@@ -171,7 +216,7 @@ if showHUD and barstate.islast
     table.cell(dash, 4, 6, "Wide Condor C", text_color=GRY, text_size=size.small)
     table.cell(dash, 5, 6, str.tostring(math.round((close+700)/50)*50, "0"), text_color=FAIL, text_size=size.small)
 
-    // [COL 6/7]: SNIPER TARGETS & CHURN
+    // [COL 6/7]: SNIPER TARGETS & MARKET
     table.cell(dash, 6, 0, "── TARGETS ──", text_color=WH, bgcolor=HDR, text_size=size.small)
     table.cell(dash, 7, 0, "Sniper Efficiency", text_color=WH, bgcolor=HDR, text_size=size.small)
     
@@ -186,6 +231,24 @@ if showHUD and barstate.islast
     table.cell(dash, 7, 4, "₹15k–25k",       text_color=OK, text_size=size.small)
     table.cell(dash, 6, 5, "Layer Count",   text_color=GRY, text_size=size.small)
     table.cell(dash, 7, 5, "Up to 3",        text_color=WH, text_size=size.small)
+
+    table.cell(dash, 6, 7, "── MARKET ──", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 7, 7, "Sniper Sensors", text_color=WH, bgcolor=HDR, text_size=size.small)
+    table.cell(dash, 6, 8, "India VIX",     text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 8, str.tostring(vixClose, "0.00"), text_color=WH, text_size=size.small)
+    table.cell(dash, 6, 9, "Sniper Ceil",   text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 9, str.tostring(vixCeil, "0.0"),  text_color=color.orange, text_size=size.small)
+    table.cell(dash, 6, 10, "ATR (14)",      text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 10, str.tostring(atr, "0"),       text_color=WH, text_size=size.small)
+    table.cell(dash, 6, 11, "Risk Score",    text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 11, str.tostring(score) + "/7",  text_color=score >= 4 ? FAIL : OK, text_size=size.small)
+    table.cell(dash, 6, 12, "V24 Velocity", text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 12, str.tostring(velocity, "0.0") + "%", text_color=velocity > velocityThres ? FAIL : OK, text_size=size.small)
+    
+    // VIX Divergence (The Sept-24 Warning)
+    bool isVixDiv = ta.roc(close, 5) > 0 and ta.roc(vixClose, 5) > 0
+    table.cell(dash, 6, 13, "VIX Div.",     text_color=GRY, text_size=size.small)
+    table.cell(dash, 7, 13, isVixDiv ? "DIVERGENCE" : "STABLE", text_color=isVixDiv ? color.orange : OK, text_size=size.small)
 
 // =============================================================================
 // [6] VISUALS (Background & Plots)
