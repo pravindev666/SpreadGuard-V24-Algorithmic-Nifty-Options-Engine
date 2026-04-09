@@ -1,17 +1,26 @@
 {
-    "timestamp": "2026-04-09 17:28:06",
+    "timestamp": "2026-04-09 17:42:37",
     "market": {
         "spot": 23770.65,
         "vix": 20.27,
         "atr": 517.5,
         "velocity": 5.55,
-        "roc5": 4.72
+        "vix_div": "STABLE"
     },
     "intelligence": {
-        "bias": "BEARISH",
-        "consensus": 1,
+        "mode": "LOCKDOWN",
+        "status": "\u26a1 STORM",
         "danger_score": 3,
-        "vix_threshold": 20.0
+        "vix_threshold": 22.0,
+        "consensus": "+1/4 Match",
+        "anchor": "NEUTRAL",
+        "mtf": "CONFLICT",
+        "sensors": {
+            "ema": "NEUTRAL",
+            "dmi": "BEAR",
+            "st": "BEAR",
+            "macd": "BULL"
+        }
     },
     "tiers": [
         {
@@ -43,13 +52,6 @@
             "type": "Bull Put"
         },
         {
-            "name": "Friday-SNP",
-            "active": false,
-            "safe": true,
-            "otm": 500,
-            "type": "Bull Put"
-        },
-        {
             "name": "Monday-RW",
             "active": false,
             "safe": true,
@@ -57,31 +59,10 @@
             "type": "Bull Put"
         },
         {
-            "name": "Wednesday-MW",
-            "active": false,
-            "safe": true,
-            "otm": 600,
-            "type": "Bull Put"
-        },
-        {
             "name": "NarrowCondor",
             "active": false,
             "safe": false,
             "otm": 400,
-            "type": "Iron Condor"
-        },
-        {
-            "name": "CONDOR",
-            "active": false,
-            "safe": false,
-            "otm": 500,
-            "type": "Iron Condor"
-        },
-        {
-            "name": "WideCondor",
-            "active": false,
-            "safe": false,
-            "otm": 600,
             "type": "Iron Condor"
         },
         {
