@@ -1,0 +1,54 @@
+name: 🛰️ NSE Live Market Data Sync (IST)
+
+on:
+  schedule:
+    # Runs at 3:45 AM UTC (which is exactly 09:15 AM IST - Market Open) Monday-Friday
+    - cron: '45 3 * * 1-5'
+    # Runs every 15 minutes from 4:00 AM UTC to 10:45 AM UTC (09:30 AM to 03:45 PM IST)
+    - cron: '*/15 4-10 * * 1-5'
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    # Force the server environment into Indian Standard Time
+    env:
+      TZ: Asia/Kolkata
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Required to push back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas yfinance requests
+
+      - name: 📡 Run Live Ticker Synthesis (data_updater.py)
+        run: |
+          # Executes the updater to assemble the pseudo-live daily candles
+          python data_updater.py
+
+      - name: 💾 Commit & Push Data
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "MarketSync-Bot"
+          
+          # Only add the data directory to avoid committing unrelated files
+          git add data/*.csv
+          
+          # Commit only if there are changes
+          timestamp=$(date +"%Y-%m-%d %H:%M:%S IST")
+          git commit -m "🤖 Auto-Sync: NSE Market Data Update ($timestamp)" || echo "No new data to commit."
+          
+          # Push back to origin
+          git push origin main
