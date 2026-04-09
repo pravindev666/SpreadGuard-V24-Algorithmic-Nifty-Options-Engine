@@ -156,13 +156,18 @@ if pulse:
         status = i.get("status", "STABLE")
         mtf = i.get("mtf", "CONFLICT")
         vix_div = m.get("vix_div", "STABLE")
+        velocity = m.get("velocity", 0.0)
+        v_veto = i.get("vwap_veto", False)
         
         st.markdown(f"""
         <table class='hud-table'>
             <tr class='hud-row'><td class='hud-label'>MODE</td><td class='hud-value' style='color: {"#FF4B2B" if mode=="LOCKDOWN" else "#FFF"}'>{mode}</td></tr>
             <tr class='hud-row'><td class='hud-label'>STATUS</td><td class='hud-value' style='color: {"#FFD700" if "STORM" in status else "#FFF"}'>{status}</td></tr>
             <tr class='hud-row'><td class='hud-label'>VIX DIV.</td><td class='hud-value' style='color: {"#FF4B2B" if "DIVERGENT" in vix_div else "#00FF85"}'>{vix_div}</td></tr>
+            <tr class='hud-row'><td class='hud-label'>V24 VELOCITY</td><td class='hud-value' style='color: {"#FF4B2B" if velocity > 4.0 else "#00FF85"}'>{velocity:.2f}%</td></tr>
+            <tr class='hud-row'><td class='hud-label'>ANCHOR</td><td class='hud-value' style='color: #4A90E2;'>{i.get("anchor", "NEUTRAL")}</td></tr>
             <tr class='hud-row'><td class='hud-label'>MTF-TREND</td><td class='hud-value' style='color: {"#00FF85" if "UP" in mtf else "#FF4B2B"}'>{mtf}</td></tr>
+            <tr class='hud-row'><td class='hud-label'>VWAP POS</td><td class='hud-value' style='color: {"#FF4B2B" if v_veto else "#00FF85"}'>{"BELOW (Bear)" if v_veto else "ABOVE (Bull)"}</td></tr>
         </table>
         """, unsafe_allow_html=True)
 
